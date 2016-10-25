@@ -1,0 +1,12 @@
+
+./restart_firewire
+./run_dvrk_console.sh
+
+% home the system
+% put it in teleop
+
+./run_simulation.sh
+python rosbag_example.py record MTMR
+python rosbag_example.py playback hardware MTMR
+python rosbag_example.py playback simulation MTMR
+

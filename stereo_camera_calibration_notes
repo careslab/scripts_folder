@@ -1,0 +1,131 @@
+//Stereo Camera Calibration has already been done before:
+
+//The directory for the calibrationfiles is:
+/home/careslab/dev/catkin_ws/src/lcsr_image_tools/fakecam/data
+camera_parameters_left.txt  
+camera_parameters_right.txt   
+
+//Here is what the parameter file contain: 
+# oST version 5.0 parameters
+[image]
+width
+640
+height
+480
+[narrow_stereo/left]
+camera matrix
+730.856864 0.000000 327.925520
+0.000000 751.227661 275.954225
+0.000000 0.000000 1.000000
+distortion
+-0.360538 0.534555 0.018933 -0.007486 0.000000
+rectification
+0.998949 -0.004580 -0.045599
+0.004671 0.999987 0.001881
+0.045590 -0.002092 0.998958
+projection
+793.767919 0.000000 326.577679 0.000000
+0.000000 793.767919 269.427090 0.000000
+0.000000 0.000000 1.000000 0.000000
+
+//We needed these file in yaml format.  To do this, we first copied the text files in ini format (not needed in retrospect).
+//and ran this command to convert to yaml format.
+rosrun camera_calibration_parsers convert cp_left.ini left.yml
+rosrun camera_calibration_parsers convert cp_right.ini right.yml
+
+//We then copied these yamal files into the following directory, as needed by usb_cam
+careslab@CARES-VidCap:~/.ros/camera_info/narrow_stereo$ ls
+left.yaml  right.yaml
+
+
+//In order to enable usb_cam to work we had to modify the launch files to include the topic names.  
+// Below is the launch file that worked.
+//This is the launch file to launch both camera view ( usb_cam_both.launch )
+//note we had to add the camera_name parameters and duplicate the file for two camera views.
+
+<launch>
+  <node name="usb_cam0" pkg="usb_cam" type="usb_cam_node" output="screen" >
+    <param name="video_device" value="/dev/video0" />
+    <param name="image_width" value="640" />
+    <param name="image_height" value="480" />
+    <param name="pixel_format" value="yuyv" />
+    <param name="camera_frame_id" value="usb_cam0" />
+    <param name="io_method" value="mmap"/>
+    <param name="camera_name" value="narrow_stereo/left"/>
+  </node>
+  <node name="image_view0" pkg="image_view" type="image_view" respawn="false" output="screen">
+    <remap from="image" to="/usb_cam0/image_raw"/>
+    <param name="autosize" value="true" />
+  </node>
+
+<node name="usb_cam1" pkg="usb_cam" type="usb_cam_node" output="screen" >
+    <param name="video_device" value="/dev/video1" />
+    <param name="image_width" value="640" />
+    <param name="image_height" value="480" />
+    <param name="pixel_format" value="yuyv" />
+    <param name="camera_frame_id" value="usb_cam1" />
+    <param name="io_method" value="mmap"/>
+    <param name="camera_name" value="narrow_stereo/right"/> 
+ </node>
+  <node name="image_view1" pkg="image_view" type="image_view" respawn="false" output="screen">
+    <remap from="image" to="/usb_cam1/image_raw"/>
+    <param name="autosize" value="true" />
+  </node>
+</launch>
+
+
+//Next, we setup the svideo parameters
+v4l2-ctl --device=/dev/video0 -i 1 -s 0 
+v4l2-ctl --device=/dev/video1 -i 1 -s 0
+
+//to run usb_cam to read and publish camera views to both the left and right topics.
+
+//This launch commands brings up both left and right images:
+roslaunch usb_cam usb_cam_both.launch
+
+//These are the topics which usb_cam creates
+/image_view0/parameter_descriptions
+/image_view0/parameter_updates
+/image_view1/parameter_descriptions
+/image_view1/parameter_updates
+
+/usb_cam0/camera_info
+/usb_cam0/image_raw
+/usb_cam0/image_raw/compressed
+/usb_cam0/image_raw/compressed/parameter_descriptions
+/usb_cam0/image_raw/compressed/parameter_updates
+/usb_cam0/image_raw/compressedDepth
+/usb_cam0/image_raw/compressedDepth/parameter_descriptions
+/usb_cam0/image_raw/compressedDepth/parameter_updates
+/usb_cam0/image_raw/theora
+/usb_cam0/image_raw/theora/parameter_descriptions
+/usb_cam0/image_raw/theora/parameter_updates
+
+/usb_cam1/camera_info
+/usb_cam1/image_raw
+/usb_cam1/image_raw/compressed
+/usb_cam1/image_raw/compressed/parameter_descriptions
+/usb_cam1/image_raw/compressed/parameter_updates
+/usb_cam1/image_raw/compressedDepth
+/usb_cam1/image_raw/compressedDepth/parameter_descriptions
+/usb_cam1/image_raw/compressedDepth/parameter_updates
+/usb_cam1/image_raw/theora
+/usb_cam1/image_raw/theora/parameter_descriptions
+/usb_cam1/image_raw/theora/parameter_updates
+
+
+//To check the camera calibration
+
+// These are the topics that cameracheck.py is lookig for in the python file
+// obviously they don't match
+
+left_topic = rospy.resolve_name("stereo") + "/left/image_rect"
+left_camera_topic = rospy.resolve_name("stereo") + "/left/camera_info"
+right_topic = rospy.resolve_name("stereo") + "/right/image_rect"
+right_camera_topic = rospy.resolve_name("stereo") + "/right/camera_info"
+
+//Inside of cameracheck.py they do compute the extrinsic parameters...so we 
+// should have access to to that information.
+
+//This is where I left off. 
+
