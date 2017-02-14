@@ -1,0 +1,10 @@
+How to run rosbags:
+
+we run it with :
+source /opt/ros/jade/setup.bash
+
+1. Load file
+2. Rename Topics
+3. Publish all topics
+4. Press Home
+5. Play
